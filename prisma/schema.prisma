@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model ConsultationPaludismeCI {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  consultationId      String   @unique
+  patientId           String   // ID anonymisé (PAT_anon_ID)
+  ageYears            Int?
+  ageMonths           Int?
+  gender              String?  // M/F
+  centreId            String?
+  centreNom           String?
+  region              String?
+  district            String?
+  commune             String?
+  gpsLatitude         Float?
+  gpsLongitude        Float?
+  dateConsultation    DateTime?
+  heureConsultation   String?  // HH:mm
+
+  // Symptômes
+  fievre              Boolean? @default(false)
+  fievreTempC         Float?
+  fievreJours         Int?
+  cephalees           Boolean? @default(false)
+  nauseesVomissements Boolean? @default(false)
+  fatigue             Boolean? @default(false)
+  douleursArticulaires Boolean? @default(false)
+  frissons            Boolean? @default(false)
+  diarhee             Boolean? @default(false)
+  troublesConscience  Boolean? @default(false)
+
+  // Signes vitaux
+  temperatureC        Float?
+  fcBpm               Int?
+  frPm                Int?
+  paSystolique        Int?
+  paDiastolique       Int?
+  spo2Pct             Int?
+
+  // Laboratoire / TDR
+  tdrPaludisme        String?  // "positif", "négatif", "inconcluant"
+  resultat_palu       Boolean? // Nouveau champ demandé
+  tdrDate             DateTime?
+  parasitemiaPct      Float?
+  especePaludisme     String?  // P. falciparum, autre, indéterminé
+  hemoglobineGDl      Float?
+  hematocritePct      Float?
+
+  // Contexte
+  saison              String?  // pluies / sèche
+  incidenceRegion     Float?   // pour 1000 hab
+  positiviteTdr       Float?   // pourcentage
+  antecedentsPalustres30j Int?
+  antecedentsCommunautaires Boolean? @default(false)
+
+  // Comorbidités / vulnérabilité
+  comorbidites        String[] // ['anémie', 'VIH', ...]
+  patientVulnerable   Boolean? @default(false)
+  patient05Ans        Boolean? @default(false)
+
+  // Traitement
+  traitementPrimaryName  String?
+  traitementPrimaryDose  String?
+  traitementPrimaryDuree Int?
+  traitementPrimaryAdherence Boolean? @default(false)
+
+  // Outcome
+  outcomeStatus       String?  // 'en traitement', 'guéris', 'décès', 'perdu de vue'
+  outcomeDeces        Boolean? @default(false)
+  suiviDate           DateTime?
+  suiviResultat       String?  // 'amélioration', 'détérioration', 'résistant'
+
+  // Gestion & Suivi
+  sourceType          String?  // 'kiosque', 'batch', 'api', 'mobile', 'pdf'
+  robotId             String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  dataQualityStatus   String?  @default("valide") // 'valide', 'en revue', 'rejeté'
+  anonymized          Boolean? @default(true)
+
+  @@index([patientId])
+  @@index([region, district])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  action    String   // 'CREATE', 'UPDATE', 'DELETE'
+  entity    String   // 'Consultation'
+  entityId  String
+  changes   String?  // JSON diff
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([entityId])
+}

@@ -1,9 +1,9 @@
+
 import { v4Fallback } from "@/app/api/ai-format/utils";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
-const prisma = new PrismaClient();
 
 // Helper pour mapper les symptômes (string -> booleans)
 function mapSymptoms(symptomsStr: string) {

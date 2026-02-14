@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { v4Fallback } from "./utils";
-
-const prisma = new PrismaClient();
 
 const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 

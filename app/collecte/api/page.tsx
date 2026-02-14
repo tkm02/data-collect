@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  AlertCircle,
-  Check,
-  ChevronLeft,
-  Loader,
-  Server,
-  Zap,
+    AlertCircle,
+    Check,
+    ChevronLeft,
+    Loader,
+    Server,
+    Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -28,25 +28,46 @@ export default function ApiPage() {
     }
 
     setIsConnecting(true);
-    // Simulation connexion API
-    setTimeout(() => {
-      setIsConnecting(false);
-      const isValid = apiUrl.startsWith("http");
+    setResult(null);
+
+    try {
+      const response = await fetch(apiUrl);
+      const contentType = response.headers.get("content-type");
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("L'URL ne retourne pas du JSON");
+      }
+
+      const jsonData = await response.json();
+
+      // Validation basique du format
+      if (!jsonData.patients || !Array.isArray(jsonData.patients)) {
+        throw new Error("Format JSON invalide: clé 'patients' manquante ou incorrecte");
+      }
+
       setResult({
-        success: isValid,
-        message: isValid
-          ? "Connexion établie avec succès"
-          : "URL invalide (doit commencer par http)",
-        data: isValid
-          ? {
-              endpoint: apiUrl,
-              lastSync: new Date().toLocaleString(),
-              records: Math.floor(Math.random() * 500) + 100,
-            }
-          : undefined,
+        success: true,
+        message: "Connexion établie et données récupérées avec succès",
+        data: {
+          endpoint: apiUrl,
+          lastSync: new Date().toLocaleString(),
+          records: jsonData.patients.length,
+          preview: jsonData.patients.slice(0, 3) // Preview des 3 premiers items
+        },
       });
-      if (isValid) setApiUrl("");
-    }, 1800);
+    } catch (error: any) {
+      setResult({
+        success: false,
+        message: error.message || "Impossible de se connecter à l'API",
+        data: undefined,
+      });
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   return (
@@ -119,6 +140,12 @@ export default function ApiPage() {
                   <p>🔗 Endpoint : {result.data.endpoint}</p>
                   <p>⏱️ Dernière sync : {result.data.lastSync}</p>
                   <p>📊 Enregistrements : {result.data.records}</p>
+                  {result.data.preview && (
+                    <div className="mt-2 text-xs bg-slate-100 p-2 rounded border border-slate-200 font-mono overflow-x-auto">
+                      <p className="font-bold text-slate-500 mb-1">Aperçu des données :</p>
+                      <pre>{JSON.stringify(result.data.preview, null, 2)}</pre>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

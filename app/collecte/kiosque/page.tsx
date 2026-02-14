@@ -1,18 +1,18 @@
 "use client";
 
 import {
-  Activity,
-  AlertCircle,
-  BriefcaseMedical,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardList,
-  Loader,
-  Save,
-  Stethoscope,
-  TestTube,
-  User
+    Activity,
+    AlertCircle,
+    BriefcaseMedical,
+    Check,
+    ChevronLeft,
+    ChevronRight,
+    ClipboardList,
+    Loader,
+    Save,
+    Stethoscope,
+    TestTube,
+    User
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -111,7 +111,7 @@ export default function KioskPage() {
     setResult(null);
 
     try {
-      const response = await fetch("http://localhost:4000/api/consultations", {
+      const response = await fetch("/api/consultations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

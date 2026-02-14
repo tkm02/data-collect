@@ -3,35 +3,39 @@ import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-// GET tous les patients
+// GET tous les patients (simulé via aggrégation des consultations)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const severity = searchParams.get("severity");
+    // severity n'est plus directement applicable sans jointure complexe ou filtrage post-query
+    // car "isSevere" n'est plus dans le schéma (c'est calculé/dans les notes ?)
+    // Ah si, "classification" ou "severityLevel" n'y sont pas.
+    // On va ignorer le filtre severity pour l'instant ou le baser sur un champ existant.
+    
     const limit = parseInt(searchParams.get("limit") || "100");
 
-    let whereClause: any = {};
+    // Récupérer les consultations récentes
+    const consultations = await prisma.consultationPaludismeCI.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 500, // On prend large pour avoir assez de patients uniques
+    });
 
-    if (severity === "severe") {
-      whereClause = {
-        consultations: {
-          some: {
-            isSevere: true,
-          },
-        },
-      };
+    // Grouper par patientId pour n'avoir que le dernier état
+    const uniquePatientsMap = new Map();
+    
+    for (const c of consultations) {
+      if (!uniquePatientsMap.has(c.patientId)) {
+        uniquePatientsMap.set(c.patientId, {
+          patientId: c.patientId,
+          age: c.ageYears,
+          gender: c.gender,
+          consultations: [c] // On attache la plus récente
+        });
+      }
+      if (uniquePatientsMap.size >= limit) break;
     }
 
-    const patients = await prisma.patient.findMany({
-      where: whereClause,
-      include: {
-        consultations: {
-          orderBy: { createdAt: "desc" },
-          take: 5,
-        },
-      },
-      take: limit,
-    });
+    const patients = Array.from(uniquePatientsMap.values());
 
     return NextResponse.json({
       success: true,
@@ -46,36 +50,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST créer un patient
+// POST créer un patient (Inutile dans le nouveau modèle flux, mais on garde pour compatibilité)
+// Dans le nouveau modèle, on crée une consultation qui contient les infos patient.
+// Si le frontend appelle ça, on ne fait rien ou on crée une consultation vide ?
+// Mieux vaut retourner succès si le patient "n'existe pas" (conceptuellement), mais on ne peut pas créer de patient seul.
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-
-    // Vérifier si patient existe déjà
-    const exists = await prisma.patient.findUnique({
-      where: { patientId: body.patientId },
-    });
-
-    if (exists) {
-      return NextResponse.json(
-        { success: false, error: "Patient existe déjà" },
-        { status: 409 }
-      );
-    }
-
-    const patient = await prisma.patient.create({
-      data: {
-        patientId: body.patientId,
-        age: body.age,
-        gender: body.gender,
-      },
-    });
-
-    return NextResponse.json({ success: true, data: patient }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 400 }
-    );
-  }
+  return NextResponse.json(
+    { success: true, message: "Endpoint déprécié. Utilisez POST /api/consultations" },
+    { status: 200 }
+  );
 }

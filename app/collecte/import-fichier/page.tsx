@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  AlertCircle,
-  Check,
-  ChevronLeft,
-  FileSpreadsheet,
-  Upload,
+    AlertCircle,
+    Check,
+    ChevronLeft,
+    FileSpreadsheet,
+    Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -35,17 +35,39 @@ export default function ImportFichierPage() {
     }
 
     setIsLoading(true);
-    // Simulation d'upload
-    setTimeout(() => {
-      setIsLoading(false);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/import-file", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erreur lors de l'import");
+      }
+
       setResult({
         success: true,
-        message: `${file.name} importé avec succès. ${
-          Math.floor(Math.random() * 100) + 10
-        } lignes traitées.`,
+        message: data.message,
       });
-      setFile(null);
-    }, 1500);
+
+      if (data.success) {
+        setFile(null); // Reset file on success
+      }
+    } catch (error: any) {
+      setResult({
+        success: false,
+        message: error.message || "Erreur de connexion au serveur",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -133,6 +155,15 @@ export default function ImportFichierPage() {
             <li>• Séparateur : virgule ou tabulation</li>
             <li>• Max 5000 lignes par fichier</li>
           </ul>
+          <div className="mt-4 flex gap-3">
+            <a href="/exemples/donnees_paludisme.xlsx" download className="text-sm font-semibold text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1">
+              📥 Télécharger modèle Excel
+            </a>
+            <span className="text-blue-300">|</span>
+            <a href="/exemples/donnees_paludisme.csv" download className="text-sm font-semibold text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1">
+              📥 Télécharger modèle CSV
+            </a>
+          </div>
         </div>
       </main>
     </div>

@@ -3,29 +3,42 @@ import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-// GET un patient spécifique
+// GET un patient spécifique (via ses consultations)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const patient = await prisma.patient.findUnique({
-      where: { patientId: params.id },
-      include: {
-        consultations: {
-          orderBy: { createdAt: "desc" },
-        },
-      },
+    const { id } = await params;
+    
+    // On cherche la dernière consultation de ce patient pour avoir ses infos à jour
+    const latestConsultation = await prisma.consultationPaludismeCI.findFirst({
+      where: { patientId: id },
+      orderBy: { createdAt: "desc" },
     });
 
-    if (!patient) {
+    if (!latestConsultation) {
       return NextResponse.json(
         { success: false, error: "Patient non trouvé" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: patient });
+    // On récupère tout l'historique
+    const history = await prisma.consultationPaludismeCI.findMany({
+      where: { patientId: id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // On construit un objet "Patient" simulé
+    const patientData = {
+      patientId: latestConsultation.patientId,
+      age: latestConsultation.ageYears,
+      gender: latestConsultation.gender,
+      consultations: history
+    };
+
+    return NextResponse.json({ success: true, data: patientData });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message },
@@ -34,24 +47,27 @@ export async function GET(
   }
 }
 
-// PUT Mettre à jour patient
+// PUT Mettre à jour patient (met à jour toutes ses consultations ?)
+// Dans un modèle événementiel/log, on ne met généralement pas à jour le passé.
+// Mais pour le besoin de l'UI, on va mettre à jour les infos démo sur la dernière entrée ?
+// Ou toutes ? Disons toutes pour la cohérence.
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
 
-    const updated = await prisma.patient.update({
-      where: { patientId: params.id },
+    const updated = await prisma.consultationPaludismeCI.updateMany({
+      where: { patientId: id },
       data: {
-        age: body.age,
+        ageYears: body.age,
         gender: body.gender,
       },
-      include: { consultations: true },
     });
 
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({ success: true, data: { count: updated.count } });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message },
@@ -60,25 +76,21 @@ export async function PUT(
   }
 }
 
-// DELETE un patient
+// DELETE un patient (toutes ses consultations)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Supprimer consultations d'abord
-    await prisma.consultation.deleteMany({
-      where: { patientId: params.id },
-    });
-
-    // Supprimer patient
-    await prisma.patient.delete({
-      where: { patientId: params.id },
+    const { id } = await params;
+    
+    await prisma.consultationPaludismeCI.deleteMany({
+      where: { patientId: id },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Patient supprimé",
+      message: "Dossier patient supprimé (toutes consultations)",
     });
   } catch (error: any) {
     return NextResponse.json(

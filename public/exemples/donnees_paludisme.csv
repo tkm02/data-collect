@@ -1,0 +1,6 @@
+patientId,age,gender,temperature,symptoms,rdtResult,dateConsultation,traitement,outcome
+PAT_2025_001,25,F,38.5,"fievre,cephalees,fatigue",positif,2025-02-14,Artemether + Lumefantrine,en traitement
+PAT_2025_002,5,M,39.2,"fievre,frissons,vomissements",positif,2025-02-14,Artesunate inj.,référé
+PAT_2025_003,45,M,37.1,"toux,rhume",négatif,2025-02-13,Paracetamol,guéris
+PAT_2025_004,12,F,38,"fievre,douleurs",positif,2025-02-13,Artemether + Lumefantrine,en traitement
+PAT_2025_005,60,F,36.8,fatigue,négatif,2025-02-12,,guéris
